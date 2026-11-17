@@ -658,6 +658,8 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
           }
           const toRemove: number[] = [];
           for (const [id, agent] of this.store) {
+            // Codex filters by its metadata cwd, not Claude's hashed project directory.
+            if (agent.providerId === 'codex') continue;
             if (agent.isExternal && !workspaceDirs.has(agent.projectDir)) {
               toRemove.push(id);
             }
@@ -864,6 +866,9 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 
         // Ensure project scan runs even with no restored agents (to adopt external terminals)
         const wsFolders = vscode.workspace.workspaceFolders;
+        this.runtime.startCodexScanning(() =>
+          (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath),
+        );
         const projectDir = getProjectDirPath();
         const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         console.log(`[Pixel Agents] Debug: Platform: ${process.platform}, arch: ${process.arch}`);

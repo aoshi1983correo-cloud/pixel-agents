@@ -53,7 +53,11 @@ function scriptPath(): string {
 const USER_COMMAND = `bash ~/.claude/statusline.sh | sed 's/a/"b"/' && echo $COLUMNS`;
 
 describe('status line bridge installer', () => {
+  const nativePlatform = Object.getOwnPropertyDescriptor(process, 'platform')!;
   beforeEach(() => {
+    // Exercise the POSIX wrapper on every host; the nested Windows cases below
+    // explicitly restore win32 and check its deliberate refusal to wrap.
+    Object.defineProperty(process, 'platform', { ...nativePlatform, value: 'linux' });
     tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'pxl-statusline-'));
     packageRoot = path.join(tmpBase, 'pkg');
     fs.mkdirSync(path.join(packageRoot, 'dist', 'hooks'), { recursive: true });
@@ -61,6 +65,7 @@ describe('status line bridge installer', () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(process, 'platform', nativePlatform);
     fs.rmSync(tmpBase, { recursive: true, force: true });
   });
 

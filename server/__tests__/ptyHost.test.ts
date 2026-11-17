@@ -72,7 +72,9 @@ async function until(check: () => boolean, timeoutMs = 2_000): Promise<void> {
   }
 }
 
-describe('PTY host', () => {
+// The optional development host uses Unix-domain sockets and chmod, unlike
+// the shipped in-process terminals. Windows does not implement that transport.
+describe.skipIf(process.platform === 'win32')('PTY host', () => {
   let dir: string;
   let socketPath: string;
   let host: PtyHost | null;

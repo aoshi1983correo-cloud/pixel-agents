@@ -289,7 +289,8 @@ describe('PixelAgentsServer', () => {
     const rotated = await server.start({ embedded: false, rotateToken: true });
     expect(rotated.token).not.toBe(first.token);
     expect(fs.readFileSync(tokenFile, 'utf-8').trim()).toBe(rotated.token);
-    expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
+    // Windows reports DOS permissions; chmod's Unix mode is not observable there.
+    if (process.platform !== 'win32') expect(fs.statSync(tokenFile).mode & 0o777).toBe(0o600);
   });
 
   it('rotateToken refuses while a standalone server is running', async () => {

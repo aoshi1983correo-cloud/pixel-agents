@@ -27,7 +27,7 @@ It ships in two forms from the same codebase:
 - **Standalone CLI** — `npx pixel-agents` starts a local server and serves the same office as a browser app, useful for tmux, remote, and non-VS Code workflows.
 - **VS Code extension** — [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) and [Open VSX](https://open-vsx.org/extension/pablodelucca/pixel-agents). Agents launch into VS Code terminals; characters render in the panel area.
 
-Claude Code is supported today; Codex, Gemini, Cursor, and others are on the roadmap. Want to add support for your favourite CLI? Join our [Discord](https://discord.gg/Yk7jXebv9H) and let us know!
+Claude Code is supported today. This fork also detects external Codex sessions through read-only transcripts (see below). Gemini, Cursor, and others are on the roadmap.
 
 ![Pixel Agents screenshot](webview-ui/public/office.png)
 
@@ -155,6 +155,16 @@ Pixel Agents uses two Claude Code detection paths:
 - **Heuristic mode** (fallback) — when hooks are unavailable, the runtime infers agent status by scanning Claude's JSONL session transcripts under `~/.claude/projects/`. Transcripts are also read in hooks mode for details not present in an event.
 
 Pixel Agents does not modify Claude Code. Its hook configuration and persistent data live under `~/.claude/` and `~/.pixel-agents/` respectively. The usage bars are opt-in (**Settings → Usage Bars**): Claude Code reports plan limits only to its status line, so turning them on wraps your `statusLine` command in `~/.claude/settings.json` (yours keeps running unchanged), and turning them off restores it.
+
+## Codex read-only discovery (this fork)
+
+Both the standalone office and the VS Code panel detect Codex sessions started outside the office, including `codex exec` from scripts. Start the standalone server in the same working directory as Codex, or open that directory in the VS Code development host. **Watch All Sessions** includes other directories. Codex characters carry a `Codex` directory label; they have no embedded terminal. The launch button still launches Claude.
+
+The provider only opens `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` for reading. `CODEX_HOME` overrides `~/.codex`. No Codex hooks or configuration are installed, and the hook toggle applies to Claude only. Discovery runs every three seconds; incremental reads run every 500 ms, with at most 256 KiB per file per tick and a bounded partial-line buffer. An existing large transcript is consumed incrementally once on startup, so its initial appearance can take longer.
+
+Turn completion shows the existing green checkmark. A session disappears after five minutes without recent records, or an explicit session-end event. Set `PIXEL_AGENTS_CODEX_IDLE_MS` to a positive millisecond value before starting the server or VS Code to change that timeout. Resumed sessions can return when they write again. Codex characters are rediscovered rather than restored through Claude's parser.
+
+Permissions can only be shown when Codex persists the corresponding event; a silent pause cannot reliably be distinguished from a long command. Tool arguments, prompts, patches and output are never forwarded by this provider. Context uses the reported last token snapshot and window; cumulative token spend is not used as context occupancy. The office's existing `Read` animation is reused for Codex reading tools, without UI or protocol changes.
 
 ## Development
 

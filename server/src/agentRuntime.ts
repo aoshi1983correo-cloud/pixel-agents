@@ -41,6 +41,7 @@ import type { HookEvent } from './hookEventHandler.js';
 import { HookEventHandler } from './hookEventHandler.js';
 import { assignPaletteIfNeeded } from './paletteAssigner.js';
 import { PathSet, pathsMatch } from './pathKey.js';
+import { CodexSessionScanner } from './providers/index.js';
 import { SessionRouter } from './sessionRouter.js';
 import { SubagentWatch } from './subagentWatch.js';
 import { cancelPermissionTimer, cancelWaitingTimer } from './timerManager.js';
@@ -78,6 +79,7 @@ export class AgentRuntime {
   private externalScanTimer: ReturnType<typeof setInterval> | null = null;
   private staleCheckTimer: ReturnType<typeof setInterval> | null = null;
   private pausedSpawnTimer: ReturnType<typeof setInterval> | null = null;
+  private codexScanner?: CodexSessionScanner;
 
   // Configuration refs (mutable, shared with scanners)
   readonly watchAllSessions = { current: false };
@@ -430,6 +432,16 @@ export class AgentRuntime {
 
   // ── Scanning ──
 
+  /** Codex's date-sharded transcripts cannot use Claude's workspace-hash scanner. */
+  startCodexScanning(workspaces: () => string[]): void {
+    if (this.codexScanner) return;
+    this.codexScanner = new CodexSessionScanner(this.store, {
+      workspaces,
+      watchAll: () => this.watchAllSessions.current,
+    });
+    this.codexScanner.start();
+  }
+
   /** Start project-level scanning for a directory. */
   startProjectScan(projectDir: string, onAgentCreated?: (agent: AgentState) => void): void {
     ensureProjectScan(
@@ -599,6 +611,8 @@ export class AgentRuntime {
    * server were already closed by their own exits.
    */
   stop(): void {
+    this.codexScanner?.stop();
+    this.codexScanner = undefined;
     this.hookEventHandler.dispose();
     this.subagentWatch.dispose();
 

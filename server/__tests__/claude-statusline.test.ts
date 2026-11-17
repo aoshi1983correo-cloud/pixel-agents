@@ -139,11 +139,10 @@ describe('claude-statusline.js integration', () => {
   });
 
   itBuilt("passes the user's status line through: stdin, env, output, exit code", async () => {
+    const command = `node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{console.log(JSON.parse(s).session_id+'|'+process.env.COLUMNS);process.exit(3)})"`;
     const { code, stdout } = await run(
       INPUT,
-      wrap(
-        `node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{console.log(JSON.parse(s).session_id+'|'+process.env.COLUMNS);process.exit(3)})" | cat; exit 3`,
-      ),
+      wrap(process.platform === 'win32' ? command : `${command} | cat; exit 3`),
     );
     expect(stdout).toBe('abc|77\n');
     expect(code).toBe(3);

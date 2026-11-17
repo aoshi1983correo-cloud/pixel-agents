@@ -45,7 +45,7 @@ describe('claudeProvider', () => {
       const real = path.join(root, 'real');
       const link = path.join(root, 'link');
       fs.mkdirSync(real);
-      fs.symlinkSync(real, link);
+      fs.symlinkSync(real, link, process.platform === 'win32' ? 'junction' : 'dir');
       expect(claudeProvider.getSessionDirs?.(link)).toEqual([sessionsOf(real), sessionsOf(link)]);
       expect(claudeProvider.getSessionDirs?.(real)).toEqual([sessionsOf(real)]);
     });

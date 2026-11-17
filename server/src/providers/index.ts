@@ -16,6 +16,8 @@ import { claudeProvider } from './hook/claude/claude.js';
 
 export { claudeProvider };
 export { copyHookScript } from './hook/claude/claudeHookInstaller.js';
+export { codexProvider } from './hook/codex/codex.js';
+export { CodexSessionScanner } from './hook/codex/sessionScanner.js';
 
 /** Every bundled hook provider, in registration order. The consent gate loops
  *  over this at the webviewReady handshake (one ask per provider that needs

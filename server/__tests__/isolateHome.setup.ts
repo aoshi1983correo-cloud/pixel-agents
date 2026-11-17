@@ -1,6 +1,14 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { vi } from 'vitest';
+
+// Suites change HOME per test. Windows' native homedir() prefers USERPROFILE,
+// so honor the test HOME consistently instead of sharing the setup directory.
+vi.mock('os', async () => {
+  const actual = await vi.importActual<typeof import('os')>('os');
+  return { ...actual, homedir: () => process.env.HOME || actual.homedir() };
+});
 
 /**
  * Every test file starts with $HOME pointing at a fresh temp directory, so nothing a test
