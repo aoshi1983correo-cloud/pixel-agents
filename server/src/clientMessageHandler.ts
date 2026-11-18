@@ -693,6 +693,8 @@ function handleWebviewReady(send: WsSend, ctx: ClientMessageContext): void {
     for (const message of usageSnapshotMessages()) send({ ...message });
   }
 
+  for (const message of ctx.store.officeAreaMessages()) send(message);
+
   // 4b. Directory→Area mappings (must arrive before existingAgents so the
   // webview seat-preference logic has the dict when characters are created).
   send({

@@ -20,13 +20,12 @@ import {
 } from '../../constants.js';
 import type { SubagentCharacter } from '../../hooks/useExtensionMessages.js';
 import { ContextBar } from '../ContextBar.js';
-import { contextLeft } from '../contextGauge.js';
 import type { OfficeState } from '../engine/officeState.js';
 import { overlayProjection } from '../projection.js';
 import { getCachedSprite } from '../sprites/spriteCache.js';
 import { BUBBLE_PERMISSION_SPRITE, BUBBLE_WAITING_SPRITE } from '../sprites/spriteData.js';
 import type { ToolActivity } from '../types.js';
-import { CharacterState } from '../types.js';
+import { CharacterState, TILE_SIZE } from '../types.js';
 
 // Both turn-end states show the green checkmark bubble. A finished turn (Stop)
 // shows ONLY the checkmark (the label falls through to its normal idle text);
@@ -55,7 +54,8 @@ function getActivityText(
   bubbleType: 'permission' | 'waiting' | null,
   waitingAwaitingInput: boolean,
 ): string {
-  if (bubbleType === 'permission') return 'Needs approval';
+  if (bubbleType === 'permission') return 'Esperando permiso';
+  if (!isActive && !waitingAwaitingInput) return 'Terminado';
   // Only the idle case ("Waiting for input") gets a dedicated label. A finished
   // turn (Stop, waitingAwaitingInput=false) falls through so the checkmark alone
   // signals "done", same as the original behavior.
@@ -66,7 +66,7 @@ function getActivityText(
     // Find the latest non-done tool
     const activeTool = [...tools].reverse().find((t) => !t.done);
     if (activeTool) {
-      if (activeTool.permissionWait) return 'Needs approval';
+      if (activeTool.permissionWait) return 'Esperando permiso';
       return activeTool.status;
     }
     // All tools done but agent still active (mid-turn) — keep showing last tool status
@@ -76,7 +76,7 @@ function getActivityText(
     }
   }
 
-  return 'Idle';
+  return isActive ? 'Trabajando' : 'Terminado';
 }
 
 /** A speech-bubble sprite blitted into a DOM canvas. Bubbles live in the DOM
@@ -148,6 +148,48 @@ export function ToolOverlay({
 
   return (
     <>
+      {officeState.officeAreas.length > 0 && (
+        <Button
+          className="absolute left-64 top-256 z-10 pointer-events-auto"
+          title="Mostrar zonas"
+          onClick={() => {
+            officeState.showAreaBounds = !officeState.showAreaBounds;
+          }}
+        >
+          {officeState.showAreaBounds ? 'Ocultar zonas' : 'Mostrar zonas'}
+        </Button>
+      )}
+      {officeState.officeAreas.map((area) => {
+        const r = area.rectangles[0];
+        return (
+          <Fragment key={area.name}>
+            {officeState.showAreaBounds &&
+              area.rectangles.map((rect, i) => (
+                <div
+                  key={i}
+                  className="absolute border-2 border-status-success bg-status-success/20 pointer-events-none"
+                  style={{
+                    left: project.toScreenX(rect.col * TILE_SIZE),
+                    top: project.toScreenY(rect.row * TILE_SIZE),
+                    width: (rect.width * TILE_SIZE * zoom) / dpr,
+                    height: (rect.height * TILE_SIZE * zoom) / dpr,
+                  }}
+                />
+              ))}
+            <div
+              className="absolute bg-bg-dark border-2 border-border px-4 text-text text-xs pointer-events-none"
+              style={{
+                left: project.toScreenX((r.col + r.width / 2) * TILE_SIZE),
+                top: project.toScreenY(r.row * TILE_SIZE),
+                transform: 'translate(-50%, -100%)',
+                boxShadow: 'var(--pixel-shadow)',
+              }}
+            >
+              {area.name}
+            </div>
+          </Fragment>
+        );
+      })}
       {allIds.map((id) => {
         const ch = officeState.characters.get(id);
         if (!ch) return null;
@@ -220,7 +262,7 @@ export function ToolOverlay({
         // its own so the sub's isn't covered.
         const isDone = ch.bubbleType === 'waiting' && !ch.waitingAwaitingInput;
         const givesWay = (isSub && !isSelected && !isHovered) || id === hoveredSubParentId;
-        if ((isDone && !isSelected && !isHovered) || givesWay) {
+        if ((isDone && !isSelected && !isHovered && !alwaysShowOverlay) || givesWay) {
           return (
             <Fragment key={id}>
               {bubbleNode}
@@ -359,13 +401,18 @@ export function ToolOverlay({
                   </Button>
                 )}
               </div>
+              {!isSub && !showContextGauge && (
+                <span className="text-2xs text-text" title="Contexto: sin datos">
+                  Contexto: sin datos
+                </span>
+              )}
               {showContextGauge && (
                 <ContextBar
                   used={contextRatio}
                   width={CONTEXT_GAUGE_WIDTH_PX}
                   height={CONTEXT_GAUGE_HEIGHT_PX}
-                  style={{ marginTop: CONTEXT_GAUGE_GAP_PX }}
-                  title={`${Math.round(contextLeft(contextRatio) * 100)}% context left (${(ch.contextTokens / 1000).toFixed(0)}k of ${(ch.maxContextTokens / 1000).toFixed(0)}k tokens used)`}
+                  style={{ marginTop: CONTEXT_GAUGE_GAP_PX, pointerEvents: 'auto' }}
+                  title={`${ch.directoryName ?? 'Agente'} · contexto: ${Math.round(contextRatio * 100)} % usado (${ch.contextTokens} de ${ch.maxContextTokens} tokens)`}
                   testId="context-gauge"
                   pct={Math.round(contextRatio * 100)}
                 />

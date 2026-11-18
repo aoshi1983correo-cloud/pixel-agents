@@ -17,7 +17,7 @@ import {
 
 /** The gauge colour for a share of the context used (0-1). */
 export function contextColor(usedRatio: number): string {
-  if (usedRatio > CONTEXT_RED_THRESHOLD) return CONTEXT_GAUGE_COLOR_RED;
+  if (usedRatio >= CONTEXT_RED_THRESHOLD) return CONTEXT_GAUGE_COLOR_RED;
   if (usedRatio >= CONTEXT_YELLOW_THRESHOLD) return CONTEXT_GAUGE_COLOR_YELLOW;
   return CONTEXT_GAUGE_COLOR_OK;
 }
@@ -34,7 +34,13 @@ export function contextLeft(usedRatio: number): number {
  * meaningless all-zero usage records.
  */
 export function contextUsedShare(contextTokens: number, maxTokens: number): number | null {
-  if (!Number.isFinite(contextTokens) || contextTokens < 0 || !(maxTokens > 0)) return null;
+  if (
+    !Number.isFinite(contextTokens) ||
+    contextTokens < 0 ||
+    !Number.isFinite(maxTokens) ||
+    !(maxTokens > 0)
+  )
+    return null;
   return Math.min(1, contextTokens / maxTokens);
 }
 

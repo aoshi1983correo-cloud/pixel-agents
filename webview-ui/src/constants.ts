@@ -304,10 +304,9 @@ export const INTRO_CAMERA_DOWN_SHIFT_PX = 50;
  *  that have taken a turn; this only covers characters created ahead of it). */
 export const DEFAULT_MAX_CONTEXT_TOKENS = 200_000;
 /** The gauge's colour steps by share USED, as the user's Claude Code status
- *  line colours its context bar: green under a third, yellow to two thirds,
- *  red past it. */
-export const CONTEXT_YELLOW_THRESHOLD = 0.33;
-export const CONTEXT_RED_THRESHOLD = 0.66;
+ *  line colours its context bar: amber at 75%, red at 90% used. */
+export const CONTEXT_YELLOW_THRESHOLD = 0.75;
+export const CONTEXT_RED_THRESHOLD = 0.9;
 export const CONTEXT_GAUGE_WIDTH_PX = 40;
 export const CONTEXT_GAUGE_HEIGHT_PX = 4;
 /** Space between an agent's label and its context gauge. */
@@ -795,9 +794,9 @@ export const USAGE_HEART_COLORS: Record<string, string> = {
   w: '#ffffff',
 };
 /** At or below this share left, a bar turns the warning colour. */
-export const USAGE_BAR_WARN_FRACTION = 0.5;
+export const USAGE_BAR_WARN_FRACTION = 0.25;
 /** At or below this share left, a bar turns the danger colour. */
-export const USAGE_BAR_LOW_FRACTION = 0.2;
+export const USAGE_BAR_LOW_FRACTION = 0.1;
 /** How often the bars re-read the clock (resets and "updated N ago" move with it). */
 export const USAGE_BAR_TICK_MS = 30_000;
 /** Distance from the office's left edge: past the 40px button column at left 8. */
@@ -877,3 +876,8 @@ export const MUSIC_VERSION_GAP_PX = 6;
 export const VERSION_LABEL_BOTTOM_PX = 10;
 /** The update notice / changelog tooltip, this far above the label's spot. */
 export const VERSION_NOTICE_ABOVE_PX = 34;
+
+/** External area routing retries free seats once per second. */
+export const OFFICE_AREA_ROUTE_INTERVAL_SEC = 1;
+/** Vertical spacing between named account usage groups. */
+export const USAGE_PROVIDER_ROW_HEIGHT_PX = 80;

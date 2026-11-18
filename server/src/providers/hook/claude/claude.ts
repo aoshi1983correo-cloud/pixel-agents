@@ -4,10 +4,8 @@ import * as path from 'path';
 
 import { normalizeProjectPath } from '../../../../../core/src/normalizeProjectPath.js';
 import type { AgentEvent, HookProvider } from '../../../../../core/src/provider.js';
-import {
-  BASH_COMMAND_DISPLAY_MAX_LENGTH,
-  TASK_DESCRIPTION_DISPLAY_MAX_LENGTH,
-} from '../../../constants.js';
+import { TASK_DESCRIPTION_DISPLAY_MAX_LENGTH } from '../../../constants.js';
+import { privateActivity } from '../../../privateActivity.js';
 import {
   areHooksInstalled as installerAreHooksInstalled,
   installHooks as installerInstallHooks,
@@ -30,26 +28,16 @@ import { isInheritedClaudeSessionEnv } from './sessionEnv.js';
 
 export function formatToolStatus(toolName: string, input?: unknown): string {
   const inp = (input ?? {}) as Record<string, unknown>;
-  const base = (p: unknown) => (typeof p === 'string' ? path.basename(p) : '');
   switch (toolName) {
     case 'Read':
-      return `Reading ${base(inp.file_path)}`;
     case 'Edit':
-      return `Editing ${base(inp.file_path)}`;
     case 'Write':
-      return `Writing ${base(inp.file_path)}`;
-    case 'Bash': {
-      const cmd = (inp.command as string) || '';
-      return `Running: ${cmd.length > BASH_COMMAND_DISPLAY_MAX_LENGTH ? cmd.slice(0, BASH_COMMAND_DISPLAY_MAX_LENGTH) + '\u2026' : cmd}`;
-    }
+    case 'Bash':
     case 'Glob':
-      return 'Searching files';
     case 'Grep':
-      return 'Searching code';
     case 'WebFetch':
-      return 'Fetching web content';
     case 'WebSearch':
-      return 'Searching the web';
+      return privateActivity(toolName, input);
     case 'Task':
     case 'Agent': {
       const desc = typeof inp.description === 'string' ? inp.description : '';

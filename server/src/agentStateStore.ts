@@ -4,6 +4,7 @@ import { appendFileSync } from 'node:fs';
 import type { StateAdapter } from '../../core/src/adapter.js';
 import type { PersistedAgent } from '../../core/src/schemas.js';
 import { toPersistedAgent } from './agentPersistence.js';
+import { loadOfficeAreas, resolveOfficeArea } from './officeAreas.js';
 import type { AgentState } from './types.js';
 
 /**
@@ -50,6 +51,38 @@ export class AgentStateStore {
   readonly nextAgentId = { current: 1 };
   readonly nextTerminalIndex = { current: 1 };
   private adapter: StateAdapter | undefined;
+  private officeAreas = loadOfficeAreas(process.env.PIXEL_AGENTS_ZONES);
+
+  configureOfficeAreas(file: string | undefined): void {
+    this.officeAreas = loadOfficeAreas(file || process.env.PIXEL_AGENTS_ZONES);
+  }
+
+  officeAreaMessages(): Record<string, unknown>[] {
+    if (!this.officeAreas) return [];
+    return [
+      { type: 'officeAreas', areas: this.officeAreas.areas, restArea: this.officeAreas.restArea },
+      ...[...this.agents.values()].map((agent) => this.agentAreaMessage(agent)),
+    ];
+  }
+
+  setWorkingDirectory(agent: AgentState, cwd: string): void {
+    const changed = agent.workingDirectory !== cwd;
+    agent.workingDirectory = cwd;
+    if (changed && this.officeAreas) this.broadcast(this.agentAreaMessage(agent));
+  }
+
+  private agentAreaMessage(agent: AgentState): Record<string, unknown> {
+    return {
+      type: 'agentArea',
+      id: agent.id,
+      directoryName: agent.directoryName,
+      area: resolveOfficeArea(
+        this.officeAreas!,
+        agent.providerId ?? 'claude',
+        agent.workingDirectory,
+      ),
+    };
+  }
 
   // ── Adapter ──────────────────────────────────────────────────
 
@@ -138,6 +171,14 @@ export class AgentStateStore {
   broadcast(message: Record<string, unknown>): void {
     debugLogBroadcast(message);
     this.emitter.emit('broadcast', message);
+    const agent = this.agents.get(message.id as number);
+    if (
+      this.officeAreas &&
+      agent &&
+      ['agentCreated', 'agentStatus', 'agentToolStart'].includes(message.type as string)
+    ) {
+      this.emitter.emit('broadcast', this.agentAreaMessage(agent));
+    }
   }
 
   // ── Lifecycle ───────────────────────────────────────────────

@@ -129,6 +129,7 @@ export function processTranscriptLine(
   agent.linesProcessed++;
   try {
     const record = JSON.parse(line);
+    if (typeof record.cwd === 'string') agents.setWorkingDirectory(agent, record.cwd);
     // Background agents' completion notices, as the provider reads them.
     const spawnNotices = hookProvider?.team?.readSpawnNotices?.(record) ?? null;
 

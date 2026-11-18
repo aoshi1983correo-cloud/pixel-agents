@@ -3,8 +3,8 @@
  * (no DOM, no clock of its own), so the rules are Node-tested.
  *
  * Reports only arrive while a Claude Code session is open, so the numbers can
- * be old. Two things stay true anyway: a window past its reset time has reset
- * (full bar, whatever was last reported), and the age of the numbers is shown.
+ * be old. Expired windows are unknown until another measured report arrives;
+ * the age of every retained report remains visible.
  */
 
 import type { UsageWindow } from '../../../core/src/messages.js';
@@ -27,16 +27,22 @@ export interface UsageBarView {
 
 /** One bar's view of a window at `nowMs`. */
 export function usageBarView(window: UsageWindow | undefined, nowMs: number): UsageBarView {
-  if (!window) return { remaining: null, level: 'unknown', percent: '--', reset: 'no data yet' };
+  if (
+    !window ||
+    !Number.isFinite(window.usedPercentage) ||
+    window.usedPercentage < 0 ||
+    !Number.isFinite(window.resetsAt)
+  )
+    return { remaining: null, level: 'unknown', percent: 'sin datos', reset: 'sin datos' };
   const resetAtMs = window.resetsAt * 1000;
   if (resetAtMs <= nowMs) {
-    return { remaining: 1, level: 'ok', percent: '100%', reset: 'reset since the last report' };
+    return { remaining: null, level: 'unknown', percent: 'sin datos', reset: 'lectura caducada' };
   }
   const remaining = Math.min(1, Math.max(0, (100 - window.usedPercentage) / 100));
   const level =
-    remaining <= USAGE_BAR_LOW_FRACTION
+    window.usedPercentage >= (1 - USAGE_BAR_LOW_FRACTION) * 100
       ? 'low'
-      : remaining <= USAGE_BAR_WARN_FRACTION
+      : window.usedPercentage >= (1 - USAGE_BAR_WARN_FRACTION) * 100
         ? 'warn'
         : 'ok';
   return {
@@ -74,7 +80,7 @@ export function freshnessLabel(
   nowMs: number,
   providerName: string,
 ): string {
-  if (updatedAtMs === undefined) return `Updates once a ${providerName} session replies`;
+  if (updatedAtMs === undefined) return `${providerName}: sin datos`;
   const age = nowMs - updatedAtMs;
   return age < 60_000 ? 'Updated just now' : `Updated ${formatDuration(age)} ago`;
 }

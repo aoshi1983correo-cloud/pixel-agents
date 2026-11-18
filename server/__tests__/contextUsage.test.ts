@@ -157,6 +157,7 @@ describe('updateContextUsage', () => {
         type: 'agentContextUsage',
         id: 1,
         contextTokens: 50_002,
+        estimated: true,
         maxContextTokens: DEFAULT_MAX_CONTEXT_TOKENS,
       },
     ]);
@@ -383,6 +384,28 @@ describe('applyReportedContext', () => {
         maxContextTokens: DEFAULT_MAX_CONTEXT_TOKENS,
       },
     ]);
+  });
+
+  it('replaces an estimated gauge with a measured report even when the numbers match', () => {
+    const agents = new AgentStateStore();
+    const agent = createTestAgent({
+      sessionId: 'synthetic-measured',
+      contextTokens: 80000,
+      maxContextTokens: 1000000,
+      contextReported: true,
+      contextEstimated: true,
+    });
+    agents.set(1, agent);
+    const messages: Record<string, unknown>[] = [];
+    agents.on('broadcast', (m) => messages.push(m));
+    applyReportedContext(agents, {
+      sessionId: 'synthetic-measured',
+      usedPercentage: 8,
+      windowTokens: 1000000,
+    });
+    expect(agent.contextEstimated).toBe(false);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).not.toHaveProperty('estimated');
   });
 
   it('ignores a session no agent runs', () => {

@@ -150,6 +150,8 @@ describe('recordUsageReport', () => {
         disclosure: claudeProvider.usageBridge!.disclosure,
       },
       usageLimitsMessage('claude'),
+      usageLimitsMessage('codex'),
+      usageLimitsMessage('antigravity'),
     ]);
   });
 });

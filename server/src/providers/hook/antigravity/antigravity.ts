@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import type { AgentEvent, HookProvider } from '../../../../../core/src/provider.js';
+import { activityInput, privateActivity } from '../../../privateActivity.js';
 import { AGY_READING_TOOLS } from './constants.js';
 
 type RecordValue = Record<string, unknown>;
@@ -12,13 +13,8 @@ export function object(value: unknown): RecordValue {
 }
 
 /** Keep prompts, command arguments, patches and tool output out of office messages. */
-export function formatToolStatus(name: string): string {
-  if (AGY_READING_TOOLS.has(name) || name === 'Read') return 'Reading';
-  if (['write_file', 'replace_file_content', 'multi_replace_file_content'].includes(name))
-    return 'Editing files';
-  if (name === 'run_command' || name === 'command_status') return 'Running a command';
-  if (name === 'request_user_input') return 'Waiting for your answer';
-  return 'Working';
+export function formatToolStatus(name: string, input?: unknown): string {
+  return privateActivity(name, input);
 }
 
 export function parseRecord(record: RecordValue): AgentEvent | null {
@@ -34,6 +30,7 @@ export function parseRecord(record: RecordValue): AgentEvent | null {
         kind: 'toolStart',
         toolId: `${record.step_index}:0`,
         toolName: typeof name === 'string' ? name : 'Tool',
+        input: activityInput(object(record.tool_calls[0]).args),
       };
     }
     return { kind: 'turnEnd' };

@@ -30,6 +30,8 @@ export interface AgentState {
   hadToolsInTurn: boolean;
   /** Directory name — the agent's origin label (only set for multi-root workspaces) */
   directoryName?: string;
+  /** Runtime-only routing input, never sent to the office. */
+  workingDirectory?: string;
   /** Timestamp of last JSONL data received (ms since epoch) */
   lastDataAt: number;
   /** Total JSONL lines processed for this agent */
@@ -71,6 +73,8 @@ export interface AgentState {
   /** True once the office was told this agent's context (agentContextUsage),
    *  so a 0 after /clear is a real reading, re-sent on every connect. */
   contextReported?: boolean;
+  /** A guessed window must not appear as a measured gauge. */
+  contextEstimated?: boolean;
 
   // -- Agent Teams --
   teamName?: string;

@@ -23,16 +23,16 @@ describe('usageBarView', () => {
     });
   });
 
-  it('warns at half left and turns low at a fifth', () => {
-    expect(usageBarView({ usedPercentage: 50, resetsAt: inMs(60_000) }, NOW).level).toBe('warn');
-    expect(usageBarView({ usedPercentage: 80, resetsAt: inMs(60_000) }, NOW).level).toBe('low');
+  it('warns at 75% used and turns red at 90%', () => {
+    expect(usageBarView({ usedPercentage: 75, resetsAt: inMs(60_000) }, NOW).level).toBe('warn');
+    expect(usageBarView({ usedPercentage: 90, resetsAt: inMs(60_000) }, NOW).level).toBe('low');
     expect(usageBarView({ usedPercentage: 100, resetsAt: inMs(60_000) }, NOW).remaining).toBe(0);
   });
 
-  it('reads a window past its reset time as full, whatever was last reported', () => {
+  it('does not invent usage after a window expires', () => {
     expect(usageBarView({ usedPercentage: 97, resetsAt: inMs(-1) }, NOW)).toMatchObject({
-      remaining: 1,
-      level: 'ok',
+      remaining: null,
+      level: 'unknown',
     });
   });
 
@@ -40,8 +40,8 @@ describe('usageBarView', () => {
     expect(usageBarView(undefined, NOW)).toEqual({
       remaining: null,
       level: 'unknown',
-      percent: '--',
-      reset: 'no data yet',
+      percent: 'sin datos',
+      reset: 'sin datos',
     });
   });
 });
@@ -81,8 +81,6 @@ describe('freshnessLabel', () => {
   });
 
   it('explains where the numbers will come from before any arrive', () => {
-    expect(freshnessLabel(undefined, NOW, 'Claude Code')).toBe(
-      'Updates once a Claude Code session replies',
-    );
+    expect(freshnessLabel(undefined, NOW, 'Claude Code')).toBe('Claude Code: sin datos');
   });
 });

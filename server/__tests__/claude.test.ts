@@ -277,7 +277,7 @@ describe('claudeProvider', () => {
   describe('formatToolStatus', () => {
     it('formats Read', () => {
       expect(claudeProvider.formatToolStatus('Read', { file_path: '/a/b.ts' })).toBe(
-        'Reading b.ts',
+        'Leyendo b.ts',
       );
     });
     it('formats Task/Agent with description', () => {
@@ -292,7 +292,7 @@ describe('claudeProvider', () => {
       expect(claudeProvider.formatToolStatus('FancyTool', {})).toBe('Using FancyTool');
     });
     it('handles undefined input', () => {
-      expect(claudeProvider.formatToolStatus('Read', undefined)).toBe('Reading ');
+      expect(claudeProvider.formatToolStatus('Read', undefined)).toBe('Leyendo');
     });
   });
 });

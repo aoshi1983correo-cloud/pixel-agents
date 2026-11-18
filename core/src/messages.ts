@@ -41,6 +41,8 @@ export type ServerMessage =
   | HooksConsentRequest
   | UsageBridgeStatus
   | UsageLimits
+  | OfficeAreas
+  | AgentArea
   | ExternalAssetDirectoriesUpdated
   | AreaMappingsLoaded
   | CardOrderLoaded
@@ -211,6 +213,7 @@ export interface AgentTeamInfo {
 
 export interface AgentContextUsage {
   type: 'agentContextUsage';
+  estimated?: boolean;
   id: number;
   contextTokens: number;
   maxContextTokens: number;
@@ -417,6 +420,31 @@ export interface UsageLimits {
 export interface UsageWindow {
   usedPercentage: number;
   resetsAt: number;
+}
+
+export interface OfficeAreas {
+  type: 'officeAreas';
+  restArea: string;
+  areas: OfficeArea[];
+}
+
+export interface OfficeArea {
+  name: string;
+  rectangles: AreaRectangle[];
+}
+
+export interface AreaRectangle {
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+
+export interface AgentArea {
+  type: 'agentArea';
+  directoryName?: string;
+  id: number;
+  area: string;
 }
 
 export interface ExternalAssetDirectoriesUpdated {

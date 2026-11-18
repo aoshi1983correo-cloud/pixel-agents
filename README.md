@@ -217,3 +217,44 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request and read ou
 ## License
 
 Pixel Agents is available under the [MIT License](LICENSE).
+
+## External office areas (this fork)
+
+Set `PIXEL_AGENTS_ZONES` to an absolute JSON filename before starting `node dist/cli.js`.
+In VS Code, set **Pixel Agents: Zones File** (`pixel-agents.zonesFile`) and reload the panel.
+An empty setting uses the environment variable. Restart after changing the JSON.
+See [the generic example](docs/office-areas.example.json).
+
+`areas` contains names and tile `rectangles` (`col`, `row`, `width`, `height`, zero based,
+right/bottom edges excluded). A room can have several rectangles. `restArea` names the lounge.
+Ordered `rules` match `provider` (`claude`, `codex`, `antigravity`) and optionally
+`pathPrefix`. The first match wins; put a provider-only fallback last. Windows paths
+match case-insensitively, with either slash, and only at directory boundaries.
+Keep private rules outside the repository. Only rectangles, labels and destinations
+reach the office. The layout is never changed. Invalid configuration fails explicitly.
+
+Active characters walk to the nearest reachable free seat inside their matched area.
+A full or seatless room falls back to the lounge, then a free lounge tile if there is
+no chair. They retry when a seat becomes free, change rooms when their directory changes,
+and return to the lounge when done or waiting (including permission requests).
+Idle wander destinations stay in the lounge. Unknown providers use the lounge.
+Without a zones file, existing directory-to-Area preferences and movement are preserved.
+**Mostrar zonas** toggles a visual overlay without saving anything into the layout.
+
+Activity labels for Codex and Antigravity retain only a file basename or command executable;
+arguments, patches, conversation text and output are discarded before normalized events.
+Claude uses the same private labels for standard file/search/shell tools. Complex shell orchestration may show
+a generic execution label; command arguments are never used to guess what a shell script does.
+
+The top-left rows name each provider. Their two bars show reported **account allowance left**
+for 7 days and 5 hours; hover explains the percentage **used**, reset time and report age.
+Codex reads `event_msg/token_count.payload.rate_limits` passively and identifies the windows
+by `window_minutes` (300 or 10080), accepting the standard `codex` bucket only.
+Claude uses its existing optional status-line bridge (Settings → Usage Bars); enabling it
+still requires the explicit setting choice. No bridge is installed by showing the bars.
+Antigravity has no verified account quota source in the observed transcript format.
+Missing, malformed or expired windows say **sin datos**, never an assumed full allowance.
+
+Bars above characters measure **context left**, independently of plan limits; their hover
+names context tokens and percent used. Context without a reported reading says **sin datos**.
+All bars turn amber at 75% used and red at 90% used.

@@ -780,6 +780,11 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
           if (consentRequest) this.webview?.postMessage(consentRequest);
         }
 
+        this.store.configureOfficeAreas(
+          vscode.workspace.getConfiguration('pixel-agents').get<string>('zonesFile'),
+        );
+        for (const message of this.store.officeAreaMessages()) this.webview?.postMessage(message);
+
         // Usage bars: install state and the last known account usage.
         for (const message of usageSnapshotMessages()) this.webview?.postMessage(message);
 

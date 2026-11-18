@@ -85,6 +85,7 @@ export function resendAgentActivity(
     if (agent.contextTokens > 0 || agent.contextReported) {
       send({
         type: 'agentContextUsage',
+        ...(agent.contextEstimated ? { estimated: true } : {}),
         id,
         contextTokens: agent.contextTokens,
         maxContextTokens: agent.maxContextTokens,

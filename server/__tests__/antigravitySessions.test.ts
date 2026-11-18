@@ -88,7 +88,7 @@ describe('Antigravity read-only sessions (entirely synthetic)', () => {
   });
 
   it('tracks invented activity without forwarding private contents', () => {
-    expect(antigravityProvider.formatToolStatus('read_file')).toBe('Reading');
+    expect(antigravityProvider.formatToolStatus('read_file')).toBe('Leyendo');
     expect(antigravityProvider.parseTranscriptLine!('{broken')).toBeNull();
     const target = file();
     fs.appendFileSync(target, event('USER_INPUT'));

@@ -283,6 +283,7 @@ export function useExtensionMessages(
     };
 
     const closeAgent = (os: OfficeState, id: number) => {
+      os.areaDestinations.delete(id);
       setAgents((prev) => prev.filter((a) => a !== id));
       setSelectedAgent((prev) => (prev === id ? null : prev));
       // Drop the drawer tab too. terminalSessionClosed normally does this, but
@@ -353,6 +354,17 @@ export function useExtensionMessages(
       // The cast (characters/castMessages.ts): profiles, items, looks, external sprites.
       if (handleCastMessage(msg, os)) return;
 
+      if (msg.type === 'officeAreas') {
+        os.officeAreas = msg.areas;
+        os.restArea = msg.restArea;
+        return;
+      }
+      if (msg.type === 'agentArea') {
+        os.areaDestinations.set(msg.id, msg.area);
+        const ch = os.characters.get(msg.id);
+        if (ch && msg.directoryName) ch.directoryName = msg.directoryName;
+        return;
+      }
       if (msg.type === 'providerCapabilities') {
         setProviderCapabilities({
           readingTools: msg.readingTools,
@@ -903,6 +915,12 @@ export function useExtensionMessages(
         );
       } else if (msg.type === 'agentContextUsage') {
         const id = msg.id as number;
+        if (msg.estimated === true) {
+          const ch = os.characters.get(id);
+          if (ch) ch.contextReported = false;
+          clearAgentContextUsed(id);
+          return;
+        }
         os.setAgentContext(id, msg.contextTokens as number, msg.maxContextTokens as number);
         setAgentContextUsed(id, msg.contextTokens as number, msg.maxContextTokens as number);
       }

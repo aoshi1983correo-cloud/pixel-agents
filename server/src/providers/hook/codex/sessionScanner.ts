@@ -8,6 +8,7 @@ import type { AgentStateStore } from '../../../agentStateStore.js';
 import { assignPaletteIfNeeded } from '../../../paletteAssigner.js';
 import { pathsMatch } from '../../../pathKey.js';
 import type { AgentState } from '../../../types.js';
+import { recordNormalizedUsage, usageLimitsMessage } from '../../../usageLimits.js';
 import { codexProvider, object, parseRecord } from './codex.js';
 import {
   CODEX_DISCOVERY_MS,
@@ -16,6 +17,7 @@ import {
   CODEX_POLL_MS,
   CODEX_READ_BYTES,
 } from './constants.js';
+import { codexRateLimits } from './rateLimits.js';
 
 interface Cursor {
   offset: number;
@@ -198,6 +200,11 @@ export class CodexSessionScanner {
     if (event?.kind === 'sessionStart') return;
     if (!cursor.cwd || !cursor.sessionId || cursor.dismissed) return;
     if (!this.inScope(cursor.cwd)) return;
+    if (record.type === 'event_msg' && payload.type === 'token_count') {
+      const limits = codexRateLimits(payload.rate_limits);
+      if (limits && recordNormalizedUsage('codex', limits, cursor.lastData))
+        this.store.broadcast({ ...usageLimitsMessage('codex') });
+    }
     if (cursor.agentId !== undefined && !this.store.has(cursor.agentId)) {
       cursor.agentId = undefined;
       cursor.dismissed = true;
@@ -221,6 +228,8 @@ export class CodexSessionScanner {
     }
     const agent = cursor.agentId === undefined ? undefined : this.store.get(cursor.agentId);
     if (!agent) return;
+    agent.directoryName = `Codex · ${path.basename(cursor.cwd)}`;
+    this.store.setWorkingDirectory(agent, cursor.cwd);
     agent.lastDataAt = cursor.lastData;
     agent.fileOffset = cursor.offset;
     agent.linesProcessed++;
@@ -259,7 +268,7 @@ export class CodexSessionScanner {
       agent.turnActive = true;
       if (agent.permissionSent) this.store.broadcast({ type: 'agentToolPermissionClear', id });
       agent.permissionSent = false;
-      const status = codexProvider.formatToolStatus(event.toolName);
+      const status = codexProvider.formatToolStatus(event.toolName, event.input);
       const name = codexProvider.readingTools.has(event.toolName) ? 'Read' : event.toolName;
       if (!agent.activeToolIds.has(event.toolId)) {
         agent.activeToolIds.add(event.toolId);

@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import type { AgentEvent, HookProvider } from '../../../../../core/src/provider.js';
+import { activityInput, privateActivity } from '../../../privateActivity.js';
 import { CODEX_READING_TOOLS } from './constants.js';
 
 type RecordValue = Record<string, unknown>;
@@ -12,13 +13,8 @@ export function object(value: unknown): RecordValue {
 }
 
 /** Keep prompts, command arguments, patches and tool output out of office messages. */
-export function formatToolStatus(name: string): string {
-  if (CODEX_READING_TOOLS.has(name) || name === 'Read') return 'Reading';
-  if (name === 'apply_patch') return 'Editing files';
-  if (name === 'exec_command' || name === 'shell' || name === 'shell_command')
-    return 'Running a command';
-  if (name === 'request_user_input') return 'Waiting for your answer';
-  return 'Working';
+export function formatToolStatus(name: string, input?: unknown): string {
+  return privateActivity(name, input);
 }
 
 export function parseRecord(record: RecordValue): AgentEvent | null {
@@ -50,6 +46,7 @@ export function parseRecord(record: RecordValue): AgentEvent | null {
           kind: 'toolStart',
           toolId: String(p.call_id ?? type),
           toolName: type === 'patch_apply_begin' ? 'apply_patch' : 'exec_command',
+          input: activityInput(p),
         };
       case 'exec_command_end':
       case 'patch_apply_end':
@@ -67,7 +64,12 @@ export function parseRecord(record: RecordValue): AgentEvent | null {
     const name = typeof p.name === 'string' ? p.name.split('.').pop()! : 'Tool';
     if (name === 'request_user_input') return { kind: 'turnEnd', awaitingInput: true };
     // Commands remain executions: guessing whether arbitrary shell code reads or writes is unsafe.
-    return { kind: 'toolStart', toolId: String(p.call_id ?? 'codex-tool'), toolName: name };
+    return {
+      kind: 'toolStart',
+      toolId: String(p.call_id ?? 'codex-tool'),
+      toolName: name,
+      input: activityInput(p.arguments ?? p.input),
+    };
   }
   if (type === 'function_call_output' || type === 'custom_tool_call_output') {
     return { kind: 'toolEnd', toolId: String(p.call_id ?? 'codex-tool') };

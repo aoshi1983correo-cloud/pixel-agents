@@ -7,6 +7,7 @@ import { createAgentState } from '../../../agentState.js';
 import type { AgentStateStore } from '../../../agentStateStore.js';
 import { assignPaletteIfNeeded } from '../../../paletteAssigner.js';
 import { pathsMatch } from '../../../pathKey.js';
+import { activityInput } from '../../../privateActivity.js';
 import type { AgentState } from '../../../types.js';
 import { antigravityProvider, object, parseRecord } from './antigravity.js';
 import {
@@ -238,6 +239,8 @@ export class AntigravitySessionScanner {
     }
     const agent = cursor.agentId === undefined ? undefined : this.store.get(cursor.agentId);
     if (!agent) return;
+    agent.directoryName = `Antigravity · ${path.basename(cursor.cwd)}`;
+    this.store.setWorkingDirectory(agent, cursor.cwd);
     agent.lastDataAt = cursor.lastData;
     agent.fileOffset = cursor.offset;
     agent.linesProcessed++;
@@ -250,6 +253,7 @@ export class AntigravitySessionScanner {
           kind: 'toolStart',
           toolId: `${record.step_index}:${index}`,
           toolName: name,
+          input: activityInput(object(call).args),
         });
     }
   }
@@ -263,7 +267,7 @@ export class AntigravitySessionScanner {
       agent.turnActive = true;
       if (agent.permissionSent) this.store.broadcast({ type: 'agentToolPermissionClear', id });
       agent.permissionSent = false;
-      const status = antigravityProvider.formatToolStatus(event.toolName);
+      const status = antigravityProvider.formatToolStatus(event.toolName, event.input);
       const name = antigravityProvider.readingTools.has(event.toolName) ? 'Read' : event.toolName;
       if (!agent.activeToolIds.has(event.toolId)) {
         agent.activeToolIds.add(event.toolId);

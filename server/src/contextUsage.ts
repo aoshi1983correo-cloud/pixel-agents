@@ -87,6 +87,8 @@ function applyContextTokens(
     tokens,
     agent.reportedContextWindow ?? declaredWindow ?? agent.maxContextTokens,
   );
+  const knownWindow = agent.reportedContextWindow ?? declaredWindow;
+  agent.contextEstimated = knownWindow === undefined || window !== knownWindow;
   setContext(agents, agentId, agent, tokens, window);
 }
 
@@ -103,6 +105,7 @@ function setContext(
   agent.contextReported = true;
   agents.broadcast({
     type: 'agentContextUsage',
+    ...(agent.contextEstimated ? { estimated: true } : {}),
     id: agentId,
     contextTokens: tokens,
     maxContextTokens: maxTokens,
@@ -119,8 +122,11 @@ export function applyReportedContext(agents: AgentStateStore, report: ReportedCo
   for (const [agentId, agent] of agents.entries()) {
     if (agent.sessionId !== report.sessionId) continue;
     const tokens = Math.round((report.usedPercentage / 100) * report.windowTokens);
+    const wasEstimated = agent.contextEstimated;
     agent.reportedContextWindow = report.windowTokens;
+    agent.contextEstimated = false;
     if (
+      !wasEstimated &&
       agent.contextReported &&
       agent.contextTokens === tokens &&
       agent.maxContextTokens === report.windowTokens
@@ -142,6 +148,7 @@ export function clearContextUsage(agentId: number, agents: AgentStateStore): voi
   const agent = agents.get(agentId);
   if (!agent) return;
   agent.sawMainChainUsage = false;
+  agent.contextEstimated ??= agent.reportedContextWindow === undefined;
   setContext(agents, agentId, agent, 0, agent.maxContextTokens);
 }
 

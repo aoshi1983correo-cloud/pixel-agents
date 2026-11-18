@@ -173,7 +173,13 @@ describe('clearing a session', () => {
 
       expect(agent.contextTokens).toBe(0);
       expect(messages.filter((m) => m.type === 'agentContextUsage')).toEqual([
-        { type: 'agentContextUsage', id: 1, contextTokens: 0, maxContextTokens: 1_000_000 },
+        {
+          type: 'agentContextUsage',
+          id: 1,
+          contextTokens: 0,
+          maxContextTokens: 1_000_000,
+          estimated: true,
+        },
       ]);
     } finally {
       for (const w of fileWatchers.values()) w.close();

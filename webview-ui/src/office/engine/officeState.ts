@@ -1,3 +1,4 @@
+import type { OfficeArea } from '../../../../core/src/messages.js';
 import { chooseLook } from '../../../../core/src/paletteUtils.js';
 import {
   CHARACTER_HIT_HALF_WIDTH,
@@ -10,6 +11,7 @@ import {
   INACTIVE_SEAT_TIMER_MIN_SEC,
   INACTIVE_SEAT_TIMER_RANGE_SEC,
   MAX_PET_ID_LENGTH,
+  OFFICE_AREA_ROUTE_INTERVAL_SEC,
   PET_HIT_HALF_WIDTH,
   PET_HIT_HEIGHT,
   WAITING_BUBBLE_DURATION_SEC,
@@ -126,6 +128,77 @@ export class OfficeState {
    * `findFreeSeat()` to bias new agents toward seats inside their Directory's Area.
    */
   areaMappings: Record<string, string[]> = {};
+  officeAreas: OfficeArea[] = [];
+  restArea = '';
+  areaDestinations = new Map<number, string>();
+  showAreaBounds = false;
+  private areaRouteTimer = 0;
+
+  private inOfficeArea(name: string, col: number, row: number): boolean {
+    return (
+      this.officeAreas
+        .find((a) => a.name === name)
+        ?.rectangles.some(
+          (r) => col >= r.col && row >= r.row && col < r.col + r.width && row < r.row + r.height,
+        ) ?? false
+    );
+  }
+
+  /** Keep a seat only inside the requested area; reachable free seats are ranked by distance. */
+  private routeOfficeArea(ch: Character): void {
+    if (!this.officeAreas.length || ch.isSubagent) return;
+    const wanted = ch.isActive
+      ? (this.areaDestinations.get(ch.id) ?? this.restArea)
+      : this.restArea;
+    const current = ch.seatId ? this.seats.get(ch.seatId) : undefined;
+    if (current && this.inOfficeArea(wanted, current.seatCol, current.seatRow)) return;
+    const candidates = [...this.seats.values()].filter((s) => !s.assigned || s.uid === ch.seatId);
+    const reachable = (name: string): Seat | undefined => {
+      let best: Seat | undefined;
+      let distance = Infinity;
+      for (const seat of candidates) {
+        if (!this.inOfficeArea(name, seat.seatCol, seat.seatRow)) continue;
+        const blocked = new Set(this.blockedTiles);
+        if (current) blocked.delete(`${current.seatCol},${current.seatRow}`);
+        blocked.delete(`${seat.seatCol},${seat.seatRow}`);
+        const steps = findPath(
+          ch.tileCol,
+          ch.tileRow,
+          seat.seatCol,
+          seat.seatRow,
+          this.tileMap,
+          blocked,
+        ).length;
+        if (steps === 0 && (ch.tileCol !== seat.seatCol || ch.tileRow !== seat.seatRow)) continue;
+        if (steps < distance) {
+          best = seat;
+          distance = steps;
+        }
+      }
+      return best;
+    };
+    const target =
+      reachable(wanted) ?? (wanted !== this.restArea ? reachable(this.restArea) : undefined);
+    if (target) {
+      if (target.uid !== ch.seatId) this.reassignSeat(ch.id, target.uid);
+      return;
+    }
+    if (current) current.assigned = false;
+    ch.seatId = null;
+    const end = ch.path.at(-1);
+    if (end && this.inOfficeArea(this.restArea, end.col, end.row)) return;
+    if (this.inOfficeArea(this.restArea, ch.tileCol, ch.tileRow)) return;
+    const taken = this.takenTiles({ except: ch.id, destinations: true });
+    const tiles = this.walkableTiles.filter(
+      (t) => this.inOfficeArea(this.restArea, t.col, t.row) && !taken.has(`${t.col},${t.row}`),
+    );
+    tiles.sort(
+      (a, b) =>
+        manhattanFrom({ col: ch.tileCol, row: ch.tileRow })(a) -
+        manhattanFrom({ col: ch.tileCol, row: ch.tileRow })(b),
+    );
+    for (const tile of tiles) if (this.walkToTile(ch.id, tile.col, tile.row)) break;
+  }
 
   /**
    * The first-run consent greeter, deliberately NOT in `characters`.
@@ -322,6 +395,10 @@ export class OfficeState {
   seatZone(uid: string): string | null {
     const seat = this.seats.get(uid);
     if (!seat) return null;
+    const configured = this.officeAreas.find((a) =>
+      this.inOfficeArea(a.name, seat.seatCol, seat.seatRow),
+    );
+    if (configured) return configured.name;
     const tiles = this.layout.areaTiles;
     if (!tiles || tiles.length === 0) return null;
     const idx = seat.seatRow * this.layout.cols + seat.seatCol;
@@ -920,6 +997,7 @@ export class OfficeState {
         ch.path = [];
         ch.moveProgress = 0;
       }
+      this.areaRouteTimer = 0;
       this.rebuildFurnitureInstances();
     }
   }
@@ -1194,6 +1272,11 @@ export class OfficeState {
   }
 
   update(dt: number): void {
+    this.areaRouteTimer -= dt;
+    if (this.officeAreas.length && this.areaRouteTimer <= 0) {
+      this.areaRouteTimer = OFFICE_AREA_ROUTE_INTERVAL_SEC;
+      for (const ch of this.characters.values()) this.routeOfficeArea(ch);
+    }
     // Furniture animation cycling
     const prevFrame = Math.floor(this.furnitureAnimTimer / FURNITURE_ANIM_INTERVAL_SEC);
     this.furnitureAnimTimer += dt;
@@ -1235,7 +1318,16 @@ export class OfficeState {
       } else {
         // Temporarily unblock own seat so character can pathfind to it
         this.withOwnSeatUnblocked(ch, () =>
-          updateCharacter(ch, dt, this.walkableTiles, this.seats, this.tileMap, this.blockedTiles),
+          updateCharacter(
+            ch,
+            dt,
+            this.officeAreas.length && !ch.isActive
+              ? this.walkableTiles.filter((t) => this.inOfficeArea(this.restArea, t.col, t.row))
+              : this.walkableTiles,
+            this.seats,
+            this.tileMap,
+            this.blockedTiles,
+          ),
         );
       }
 

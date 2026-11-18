@@ -10,6 +10,10 @@ declare global {
       getCharacters?: () => Array<{
         id: number;
         matrixEffect: 'spawn' | 'despawn' | null;
+        tileCol: number;
+        tileRow: number;
+        state: string;
+        pathLength: number;
         agentName?: string;
         bubbleType: 'permission' | 'waiting' | null;
         waitingAwaitingInput?: boolean;
@@ -150,6 +154,10 @@ export function installTestHooks(officeStateRef: { current: OfficeState | null }
     return os.getCharacters().map((ch) => ({
       id: ch.id,
       matrixEffect: ch.matrixEffect,
+      tileCol: ch.tileCol,
+      tileRow: ch.tileRow,
+      state: ch.state,
+      pathLength: ch.path.length,
       agentName: ch.agentName,
       bubbleType: ch.bubbleType,
       waitingAwaitingInput: ch.waitingAwaitingInput,

@@ -182,6 +182,7 @@ export class HookEventHandler {
       if (existingAgentId !== undefined) {
         const agent = this.agents.get(existingAgentId);
         if (agent) {
+          if (typeof event.cwd === 'string') this.agents.setWorkingDirectory(agent, event.cwd);
           agent.hookDelivered = true;
         }
         if (debug)
@@ -194,6 +195,7 @@ export class HookEventHandler {
       for (const [id, agent] of this.agents) {
         if (agent.sessionId === event.session_id) {
           this.registerAgent(agent.sessionId, id);
+          if (typeof event.cwd === 'string') this.agents.setWorkingDirectory(agent, event.cwd);
           agent.hookDelivered = true;
           if (debug)
             console.log(
@@ -316,6 +318,7 @@ export class HookEventHandler {
     const agent = this.agents.get(agentId);
     if (!agent) return;
 
+    if (typeof event.cwd === 'string') this.agents.setWorkingDirectory(agent, event.cwd);
     agent.hookDelivered = true;
     if (debug)
       console.log(

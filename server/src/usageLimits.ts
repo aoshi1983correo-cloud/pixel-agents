@@ -22,7 +22,7 @@ import {
   USAGE_UNCHANGED_REFRESH_MS,
 } from './constants.js';
 import { writeJsonAtomic } from './jsonFileWatcher.js';
-import { hookProviders } from './providers/index.js';
+import { antigravityProvider, codexProvider, hookProviders } from './providers/index.js';
 import { isRecord } from './serverConfig.js';
 
 /** A provider's last report: its windows and when it arrived (epoch ms). */
@@ -87,8 +87,8 @@ function stored(): Record<string, StoredUsage> {
  * message, so identical reports in between are dropped, not written.
  *
  * A window missing from the report keeps its last value: Claude Code drops a
- * window once it resets, and the client already shows a window past its reset
- * time as full.
+ * window once it resets. An expired reading is displayed as unknown until
+ * another measurement arrives.
  */
 export function recordUsageReport(
   provider: HookProvider,
@@ -97,8 +97,18 @@ export function recordUsageReport(
 ): boolean {
   const limits = provider.usageBridge?.normalizeReport(raw);
   if (!limits) return false;
+  return recordNormalizedUsage(provider.id, limits, now);
+}
+
+/** Passive providers report numeric windows without installing a bridge. */
+export function recordNormalizedUsage(
+  providerId: string,
+  limits: ReportedUsage,
+  now: number,
+): boolean {
   const all = stored();
-  const prev = all[provider.id];
+  const prev = all[providerId];
+  if (prev && prev.updatedAt > now) return false;
   const next: StoredUsage = {
     ...(prev?.fiveHour ? { fiveHour: prev.fiveHour } : {}),
     ...(prev?.sevenDay ? { sevenDay: prev.sevenDay } : {}),
@@ -109,7 +119,7 @@ export function recordUsageReport(
   const { updatedAt: _nextAt, ...nextWindows } = next;
   const moved = !isDeepStrictEqual(prevWindows, nextWindows);
   if (!moved && prev && now - prev.updatedAt < USAGE_UNCHANGED_REFRESH_MS) return false;
-  all[provider.id] = next;
+  all[providerId] = next;
   try {
     writeJsonAtomic(usageFilePath(), all);
   } catch (err) {
@@ -141,12 +151,12 @@ export function usageBridgeStatusMessage(
 }
 
 /** What a privileged office is told about usage when it connects: for each
- *  provider with a usage bridge, in registration order, its install state and
- *  then its last known usage. Both surfaces' handshakes send exactly this. */
+ *  provider, its last usage; bridges also include their install state. Both surfaces' handshakes send exactly this. */
 export function usageSnapshotMessages(): Array<UsageBridgeStatus | UsageLimits> {
-  return hookProviders
-    .filter((provider) => provider.usageBridge)
-    .flatMap((provider) => [usageBridgeStatusMessage(provider), usageLimitsMessage(provider.id)]);
+  return [...hookProviders, codexProvider, antigravityProvider].flatMap((provider) => [
+    ...(provider.usageBridge ? [usageBridgeStatusMessage(provider)] : []),
+    usageLimitsMessage(provider.id),
+  ]);
 }
 
 /**

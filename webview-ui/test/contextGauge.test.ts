@@ -18,11 +18,11 @@ import type { OfficeLayout } from '../src/office/types.js';
 import { TileType } from '../src/office/types.js';
 
 describe('contextColor', () => {
-  it("steps like the user's status line: green under 33% used, yellow to 66%, red past it", () => {
+  it("steps like the user's status line: green below 75% used, amber at 75%, red at 90%", () => {
     expect(contextColor(0.1)).toBe(CONTEXT_GAUGE_COLOR_OK);
-    expect(contextColor(0.33)).toBe(CONTEXT_GAUGE_COLOR_YELLOW);
-    expect(contextColor(0.66)).toBe(CONTEXT_GAUGE_COLOR_YELLOW);
-    expect(contextColor(0.67)).toBe(CONTEXT_GAUGE_COLOR_RED);
+    expect(contextColor(0.75)).toBe(CONTEXT_GAUGE_COLOR_YELLOW);
+    expect(contextColor(0.89)).toBe(CONTEXT_GAUGE_COLOR_YELLOW);
+    expect(contextColor(0.9)).toBe(CONTEXT_GAUGE_COLOR_RED);
   });
 });
 
@@ -43,6 +43,7 @@ describe('a cleared session (0 tokens)', () => {
     expect(contextUsedShare(Number.NaN, 200_000)).toBeNull();
     expect(contextUsedShare(-1, 200_000)).toBeNull();
     expect(contextUsedShare(10, 0)).toBeNull();
+    expect(contextUsedShare(10, Infinity)).toBeNull();
   });
 
   it("drops the card's bar to a full one, not none", () => {

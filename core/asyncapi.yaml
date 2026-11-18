@@ -120,6 +120,8 @@ components:
         # Usage bars (the account's plan limits)
         - $ref: '#/components/schemas/UsageBridgeStatus'
         - $ref: '#/components/schemas/UsageLimits'
+        - $ref: '#/components/schemas/OfficeAreas'
+        - $ref: '#/components/schemas/AgentArea'
         - $ref: '#/components/schemas/ExternalAssetDirectoriesUpdated'
         - $ref: '#/components/schemas/AreaMappingsLoaded'
         - $ref: '#/components/schemas/CardOrderLoaded'
@@ -470,6 +472,9 @@ components:
       properties:
         type:
           const: agentContextUsage
+        estimated:
+          type: boolean
+          description: A guessed window; clients display no measured gauge.
         id:
           type: integer
         contextTokens:
@@ -835,6 +840,60 @@ components:
         error:
           type: string
           description: Why the last change failed (sent to the asker only).
+
+    OfficeAreas:
+      type: object
+      additionalProperties: false
+      required: [type, areas, restArea]
+      properties:
+        type:
+          const: officeAreas
+        restArea:
+          type: string
+        areas:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfficeArea'
+
+    OfficeArea:
+      type: object
+      additionalProperties: false
+      required: [name, rectangles]
+      properties:
+        name:
+          type: string
+        rectangles:
+          type: array
+          items:
+            $ref: '#/components/schemas/AreaRectangle'
+
+    AreaRectangle:
+      type: object
+      additionalProperties: false
+      required: [col, row, width, height]
+      properties:
+        col:
+          type: integer
+        row:
+          type: integer
+        width:
+          type: integer
+        height:
+          type: integer
+
+    AgentArea:
+      type: object
+      additionalProperties: false
+      required: [type, id, area]
+      properties:
+        type:
+          const: agentArea
+        directoryName:
+          type: string
+        id:
+          type: integer
+        area:
+          type: string
 
     UsageLimits:
       description: |

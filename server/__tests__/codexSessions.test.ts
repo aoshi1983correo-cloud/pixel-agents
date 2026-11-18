@@ -348,4 +348,54 @@ describe('Codex read-only sessions (entirely synthetic)', () => {
       vi.useRealTimers();
     }
   });
+  it('routes directory changes without another tool and publishes reported quota only', () => {
+    const config = path.join(root, 'areas.json');
+    fs.writeFileSync(
+      config,
+      JSON.stringify({
+        areas: ['Web', 'App', 'Rest'].map((name) => ({
+          name,
+          rectangles: [{ col: 1, row: 1, width: 3, height: 3 }],
+        })),
+        restArea: 'Rest',
+        rules: [
+          { provider: 'codex', pathPrefix: workspace, area: 'Web' },
+          { provider: 'codex', area: 'App' },
+        ],
+      }),
+    );
+    store.configureOfficeAreas(config);
+    scanner = new CodexSessionScanner(store, {
+      roots: [root],
+      workspaces: () => [],
+      watchAll: () => true,
+      now: () => now,
+      idleMs: 10000,
+    });
+    const target = file();
+    fs.appendFileSync(target, event('task_started'));
+    scanner.poll();
+    expect(messages.at(-1)).toMatchObject({ type: 'agentArea', area: 'Web' });
+    fs.appendFileSync(
+      target,
+      record('event_msg', {
+        type: 'token_count',
+        rate_limits: {
+          limit_id: 'codex',
+          primary: { used_percent: 62, window_minutes: 300, resets_at: 1900000000 },
+        },
+      }),
+    );
+    scanner.poll();
+    expect(messages.some((m) => m.type === 'usageLimits' && m.providerId === 'codex')).toBe(true);
+    const quota = messages.find((m) => m.type === 'usageLimits')!;
+    expect(quota.fiveHour).toEqual({ usedPercentage: 62, resetsAt: 1900000000 });
+    expect(quota.sevenDay).toBeUndefined();
+    const next = path.resolve('/synthetic-second-project');
+    fs.appendFileSync(target, record('turn_context', { cwd: next }));
+    scanner.poll();
+    expect(agent().workingDirectory).toBe(next);
+    expect(messages.at(-1)).toMatchObject({ type: 'agentArea', area: 'App' });
+    expect(JSON.stringify(messages)).not.toContain(next);
+  });
 });

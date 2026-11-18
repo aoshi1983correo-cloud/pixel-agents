@@ -1,0 +1,42 @@
+{
+  "areas": [
+    {
+      "name": "Studio",
+      "rectangles": [
+        {
+          "col": 1,
+          "row": 1,
+          "width": 6,
+          "height": 5
+        }
+      ]
+    },
+    {
+      "name": "Lounge",
+      "rectangles": [
+        {
+          "col": 1,
+          "row": 7,
+          "width": 12,
+          "height": 4
+        }
+      ]
+    }
+  ],
+  "restArea": "Lounge",
+  "rules": [
+    {
+      "provider": "codex",
+      "pathPrefix": "C:/Projects/site",
+      "area": "Studio"
+    },
+    {
+      "provider": "antigravity",
+      "area": "Studio"
+    },
+    {
+      "provider": "claude",
+      "area": "Studio"
+    }
+  ]
+}

@@ -137,6 +137,8 @@ function App() {
     saveCardOrder,
   } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty);
   const usage = useUsageBridge();
+  const codexUsage = useUsageBridge(undefined, 'codex');
+  const agyUsage = useUsageBridge(undefined, 'antigravity');
 
   // Show migration notice once layout reset is detected
   const [migrationNoticeDismissed, setMigrationNoticeDismissed] = useState(false);
@@ -576,13 +578,21 @@ function App() {
           )}
 
           {/* The provider's plan usage, top-left (Settings → Usage Bars). */}
-          {usage.status?.installed && (
+          {
             <UsageBars
               limits={usage.limits}
-              providerName={usage.status.providerName}
+              providerName={usage.status?.providerName ?? 'Claude'}
               mobile={isMobile}
             />
-          )}
+          }
+
+          <UsageBars limits={codexUsage.limits} providerName="Codex" mobile={isMobile} row={1} />
+          <UsageBars
+            limits={agyUsage.limits}
+            providerName="Antigravity"
+            mobile={isMobile}
+            row={2}
+          />
 
           {/* Vignette overlay */}
           <div
