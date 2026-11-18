@@ -27,7 +27,7 @@ It ships in two forms from the same codebase:
 - **Standalone CLI** — `npx pixel-agents` starts a local server and serves the same office as a browser app, useful for tmux, remote, and non-VS Code workflows.
 - **VS Code extension** — [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) and [Open VSX](https://open-vsx.org/extension/pablodelucca/pixel-agents). Agents launch into VS Code terminals; characters render in the panel area.
 
-Claude Code is supported today. This fork also detects external Codex sessions through read-only transcripts (see below). Gemini, Cursor, and others are on the roadmap.
+Claude Code is supported today. This fork also detects external Codex and Antigravity CLI sessions through read-only transcripts (see below). Other providers remain on the roadmap.
 
 ![Pixel Agents screenshot](webview-ui/public/office.png)
 
@@ -165,6 +165,16 @@ The provider only opens `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` for readi
 Turn completion shows the existing green checkmark. A session disappears after five minutes without recent records, or an explicit session-end event. Set `PIXEL_AGENTS_CODEX_IDLE_MS` to a positive millisecond value before starting the server or VS Code to change that timeout. Resumed sessions can return when they write again. Codex characters are rediscovered rather than restored through Claude's parser.
 
 Permissions can only be shown when Codex persists the corresponding event; a silent pause cannot reliably be distinguished from a long command. Tool arguments, prompts, patches and output are never forwarded by this provider. Context uses the reported last token snapshot and window; cumulative token spend is not used as context occupancy. The office's existing `Read` animation is reused for Codex reading tools, without UI or protocol changes.
+
+## Antigravity read-only discovery (this fork)
+
+External `agy -p` runs are adopted in standalone and VS Code, with an `Antigravity · directory` label and the office's existing character allocation. Start the office before your scripts, in the same directory; **Watch All Sessions** includes other directories. No Antigravity hooks, credentials or settings are installed or changed.
+
+The provider reads `~/.gemini/antigravity-cli/brain/<id>/.system_generated/logs/transcript.jsonl` incrementally, in bounded 256 KiB reads every 500 ms. Discovery runs every three seconds. It uses `created_at` and actual byte growth rather than Windows timestamps. Mirrored chunks and `transcript_full.jsonl` are deliberately ignored to avoid duplicated events. Prompts, arguments and command output are never forwarded.
+
+`cache/last_conversations.json` supplies the working directory. Since this index only maps each directory to its newest conversation, the provider retains mappings observed during the office's lifetime. Starting the office after several conversations already started in the same directory can leave older conversations undiscovered; an unknown working directory is never guessed. No SQLite driver is required. `PIXEL_AGENTS_AGY_HOME` overrides the Antigravity data root for isolated testing.
+
+`USER_INPUT` shows working, tool calls show reading, editing or running a command, and a planner response without tool calls is treated as turn completion. This is transcript inference: permission waits and internal thinking are not reliably exposed by the tested CLI. A persistent `presence/<id>.lock` remains after print mode exits, so it is not used as a liveness signal. After five minutes without recent records the character is removed; `PIXEL_AGENTS_AGY_IDLE_MS` accepts a positive timeout in milliseconds. The close button dismisses the character without stopping the external CLI.
 
 ## Development
 

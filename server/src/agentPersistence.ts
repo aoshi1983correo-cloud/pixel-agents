@@ -21,8 +21,8 @@ import type { AgentState } from './types.js';
  *  Persisting one would resurrect an immortal character whose completion
  *  signal never comes. */
 export function toPersistedAgent(agent: AgentState): PersistedAgent | null {
-  // Codex is rediscovered read-only; Claude's restore path must never parse its rollouts.
-  if (agent.providerId === 'codex') return null;
+  // Passive providers rediscover their sessions outside Claude's restore parser.
+  if (agent.providerId === 'codex' || agent.providerId === 'antigravity') return null;
   if (agent.spawnToolUseId) return null;
   return {
     id: agent.id,

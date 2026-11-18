@@ -29,3 +29,6 @@ export const hookProviders: readonly HookProvider[] = [claudeProvider];
 export function hookProviderById(id: unknown): HookProvider | undefined {
   return typeof id === 'string' ? hookProviders.find((p) => p.id === id) : undefined;
 }
+
+export { antigravityProvider } from './hook/antigravity/antigravity.js';
+export { AntigravitySessionScanner } from './hook/antigravity/sessionScanner.js';

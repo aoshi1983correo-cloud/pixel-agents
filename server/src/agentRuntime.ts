@@ -41,7 +41,7 @@ import type { HookEvent } from './hookEventHandler.js';
 import { HookEventHandler } from './hookEventHandler.js';
 import { assignPaletteIfNeeded } from './paletteAssigner.js';
 import { PathSet, pathsMatch } from './pathKey.js';
-import { CodexSessionScanner } from './providers/index.js';
+import { AntigravitySessionScanner, CodexSessionScanner } from './providers/index.js';
 import { SessionRouter } from './sessionRouter.js';
 import { SubagentWatch } from './subagentWatch.js';
 import { cancelPermissionTimer, cancelWaitingTimer } from './timerManager.js';
@@ -80,6 +80,7 @@ export class AgentRuntime {
   private staleCheckTimer: ReturnType<typeof setInterval> | null = null;
   private pausedSpawnTimer: ReturnType<typeof setInterval> | null = null;
   private codexScanner?: CodexSessionScanner;
+  private antigravityScanner?: AntigravitySessionScanner;
 
   // Configuration refs (mutable, shared with scanners)
   readonly watchAllSessions = { current: false };
@@ -432,8 +433,15 @@ export class AgentRuntime {
 
   // ── Scanning ──
 
-  /** Codex's date-sharded transcripts cannot use Claude's workspace-hash scanner. */
-  startCodexScanning(workspaces: () => string[]): void {
+  /** Passive CLI transcripts use their own discovery instead of Claude's workspace hashes. */
+  startReadOnlyProviderScanning(workspaces: () => string[]): void {
+    if (!this.antigravityScanner) {
+      this.antigravityScanner = new AntigravitySessionScanner(this.store, {
+        workspaces,
+        watchAll: () => this.watchAllSessions.current,
+      });
+      this.antigravityScanner.start();
+    }
     if (this.codexScanner) return;
     this.codexScanner = new CodexSessionScanner(this.store, {
       workspaces,
@@ -611,6 +619,8 @@ export class AgentRuntime {
    * server were already closed by their own exits.
    */
   stop(): void {
+    this.antigravityScanner?.stop();
+    this.antigravityScanner = undefined;
     this.codexScanner?.stop();
     this.codexScanner = undefined;
     this.hookEventHandler.dispose();
