@@ -361,6 +361,7 @@ export function useExtensionMessages(
       }
       if (msg.type === 'agentArea') {
         os.areaDestinations.set(msg.id, msg.area);
+        os.areaStayUntil.set(msg.id, msg.stayUntil ?? 0);
         const ch = os.characters.get(msg.id);
         if (ch && msg.directoryName) ch.directoryName = msg.directoryName;
         return;

@@ -17,6 +17,7 @@ import {
   TEAM_ROLE_COLOR,
   TOOL_OVERLAY_GAP_PX,
   TOOL_OVERLAY_VERTICAL_OFFSET,
+  USAGE_PROVIDER_ROW_HEIGHT_PX,
 } from '../../constants.js';
 import type { SubagentCharacter } from '../../hooks/useExtensionMessages.js';
 import { ContextBar } from '../ContextBar.js';
@@ -55,7 +56,8 @@ function getActivityText(
   waitingAwaitingInput: boolean,
 ): string {
   if (bubbleType === 'permission') return 'Esperando permiso';
-  if (!isActive && !waitingAwaitingInput) return 'Terminado';
+  if (!isActive && !waitingAwaitingInput)
+    return bubbleType === 'waiting' || agentTools[agentId]?.length ? 'Terminado' : 'En descanso';
   // Only the idle case ("Waiting for input") gets a dedicated label. A finished
   // turn (Stop, waitingAwaitingInput=false) falls through so the checkmark alone
   // signals "done", same as the original behavior.
@@ -150,7 +152,8 @@ export function ToolOverlay({
     <>
       {officeState.officeAreas.length > 0 && (
         <Button
-          className="absolute left-64 top-256 z-10 pointer-events-auto"
+          className="absolute left-64 z-10 pointer-events-auto"
+          style={{ top: 4 * USAGE_PROVIDER_ROW_HEIGHT_PX }}
           title="Mostrar zonas"
           onClick={() => {
             officeState.showAreaBounds = !officeState.showAreaBounds;
@@ -197,6 +200,10 @@ export function ToolOverlay({
         const isSelected = selectedId === id;
         const isHovered = hoveredId === id;
         const isSub = ch.isSubagent;
+        const audioError =
+          ch.directoryName === 'ElevenLabs'
+            ? agentTools[id]?.find((t) => !t.done && t.status.startsWith('Error'))
+            : undefined;
 
         // Speech bubble (permission dots / done checkmark) — rendered here in
         // the DOM, above the label panels (OVERLAY_BUBBLE_Z_INDEX over the label panels), for every
@@ -239,7 +246,7 @@ export function ToolOverlay({
 
         // Only show the label for hovered or selected agents (unless
         // always-show is on) — the bubble renders regardless.
-        if (!alwaysShowOverlay && !isSelected && !isHovered) {
+        if (!alwaysShowOverlay && !isSelected && !isHovered && !audioError) {
           return bubbleNode && <Fragment key={id}>{bubbleNode}</Fragment>;
         }
 
@@ -286,7 +293,7 @@ export function ToolOverlay({
           activityText = WAITING_INPUT_ACTIVITY_TEXT;
         } else if (isSub) {
           if (subHasPermission) {
-            activityText = 'Needs approval';
+            activityText = 'Esperando permiso';
           } else {
             // Hover shows the subtask title; SELECTING the sub reveals its live
             // tool activity (watched sub-agents stream it via subagentToolStart).
@@ -294,7 +301,7 @@ export function ToolOverlay({
             const rows = sub ? subagentTools[sub.parentAgentId]?.[sub.parentToolId] : undefined;
             const activeRow =
               isSelected && rows ? [...rows].reverse().find((t) => !t.done) : undefined;
-            activityText = activeRow?.status ?? (sub?.label || 'Subtask');
+            activityText = activeRow?.status ?? (sub?.label || 'Subtarea');
           }
         } else {
           activityText = getActivityText(
@@ -306,6 +313,8 @@ export function ToolOverlay({
           );
         }
 
+        if (audioError) activityText = audioError.status;
+
         // Determine dot color
         const tools = agentTools[id];
         const hasPermission = subHasPermission || tools?.some((t) => t.permissionWait && !t.done);
@@ -314,7 +323,9 @@ export function ToolOverlay({
         const hasWaiting = ch.bubbleType === 'waiting';
 
         let dotColor: string | null = null;
-        if (hasPermission || hasWaiting) {
+        if (audioError) {
+          dotColor = 'var(--color-danger)';
+        } else if (hasPermission || hasWaiting) {
           dotColor = 'var(--color-status-permission)';
         } else if (isActive && hasActiveTools) {
           dotColor = 'var(--color-status-active)';

@@ -129,6 +129,7 @@ export class OfficeState {
    */
   areaMappings: Record<string, string[]> = {};
   officeAreas: OfficeArea[] = [];
+  areaStayUntil = new Map<number, number>();
   restArea = '';
   areaDestinations = new Map<number, string>();
   showAreaBounds = false;
@@ -147,12 +148,25 @@ export class OfficeState {
   /** Keep a seat only inside the requested area; reachable free seats are ranked by distance. */
   private routeOfficeArea(ch: Character): void {
     if (!this.officeAreas.length || ch.isSubagent) return;
-    const wanted = ch.isActive
-      ? (this.areaDestinations.get(ch.id) ?? this.restArea)
-      : this.restArea;
+    const staying = ch.isActive || (this.areaStayUntil.get(ch.id) ?? 0) > Date.now();
+    const wanted = staying ? (this.areaDestinations.get(ch.id) ?? this.restArea) : this.restArea;
+    const reserved = this.officeAreas.flatMap((a) => a.workstations ?? []);
+    const own = staying ? reserved.find((w) => w.occupant === ch.directoryName) : undefined;
+    const allowed = (s: Seat): boolean => {
+      const reservation = reserved.find((w) => w.col === s.seatCol && w.row === s.seatRow);
+      if (reservation && reservation.occupant !== ch.directoryName) return false;
+      return (
+        !own ||
+        (s.seatCol === own.col && s.seatRow === own.row) ||
+        this.inOfficeArea(this.restArea, s.seatCol, s.seatRow)
+      );
+    };
     const current = ch.seatId ? this.seats.get(ch.seatId) : undefined;
-    if (current && this.inOfficeArea(wanted, current.seatCol, current.seatRow)) return;
-    const candidates = [...this.seats.values()].filter((s) => !s.assigned || s.uid === ch.seatId);
+    if (current && allowed(current) && this.inOfficeArea(wanted, current.seatCol, current.seatRow))
+      return;
+    const candidates = [...this.seats.values()].filter(
+      (s) => allowed(s) && (!s.assigned || s.uid === ch.seatId),
+    );
     const reachable = (name: string): Seat | undefined => {
       let best: Seat | undefined;
       let distance = Infinity;
@@ -1316,6 +1330,8 @@ export class OfficeState {
           this.blockedTiles,
         );
       } else {
+        const stayMs = (this.areaStayUntil.get(ch.id) ?? 0) - Date.now();
+        if (!ch.isActive && stayMs > 0) ch.seatTimer = stayMs / 1000;
         // Temporarily unblock own seat so character can pathfind to it
         this.withOwnSeatUnblocked(ch, () =>
           updateCharacter(

@@ -415,11 +415,18 @@ export interface UsageLimits {
   fiveHour?: UsageWindow;
   sevenDay?: UsageWindow;
   updatedAt?: number;
+  credits?: AudioCredits;
 }
 
 export interface UsageWindow {
   usedPercentage: number;
   resetsAt: number;
+}
+
+export interface AudioCredits {
+  used: number;
+  limit: number;
+  renewsAt: number;
 }
 
 export interface OfficeAreas {
@@ -431,6 +438,7 @@ export interface OfficeAreas {
 export interface OfficeArea {
   name: string;
   rectangles: AreaRectangle[];
+  workstations?: OfficeWorkstation[];
 }
 
 export interface AreaRectangle {
@@ -440,8 +448,15 @@ export interface AreaRectangle {
   height: number;
 }
 
+export interface OfficeWorkstation {
+  col: number;
+  row: number;
+  occupant: string;
+}
+
 export interface AgentArea {
   type: 'agentArea';
+  stayUntil?: number;
   directoryName?: string;
   id: number;
   area: string;

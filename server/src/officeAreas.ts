@@ -25,6 +25,27 @@ export function loadOfficeAreas(file: string | undefined): OfficeAreas | undefin
       !area.rectangles.length
     )
       throw new Error('Invalid office area');
+    if (
+      area.workstations !== undefined &&
+      (!Array.isArray(area.workstations) ||
+        area.workstations.some(
+          (w) =>
+            !Number.isSafeInteger(w.col) ||
+            !Number.isSafeInteger(w.row) ||
+            w.col < 0 ||
+            w.row < 0 ||
+            typeof w.occupant !== 'string' ||
+            !w.occupant.trim() ||
+            !area.rectangles.some(
+              (r) =>
+                w.col >= r.col &&
+                w.col < r.col + r.width &&
+                w.row >= r.row &&
+                w.row < r.row + r.height,
+            ),
+        ))
+    )
+      throw new Error('Invalid office workstation');
     names.add(area.name);
     for (const r of area.rectangles) {
       if (
@@ -47,7 +68,10 @@ export function loadOfficeAreas(file: string | undefined): OfficeAreas | undefin
       throw new Error('Invalid area rule');
   }
   return {
-    areas: raw.areas.map(({ name, rectangles }) => ({
+    areas: raw.areas.map(({ name, rectangles, workstations }) => ({
+      ...(workstations
+        ? { workstations: workstations.map(({ col, row, occupant }) => ({ col, row, occupant })) }
+        : {}),
       name,
       rectangles: rectangles.map(({ col, row, width, height }) => ({ col, row, width, height })),
     })),

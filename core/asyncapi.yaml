@@ -866,6 +866,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AreaRectangle'
+        workstations:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfficeWorkstation'
+
+    OfficeWorkstation:
+      type: object
+      additionalProperties: false
+      required: [col, row, occupant]
+      properties:
+        col:
+          type: integer
+        row:
+          type: integer
+        occupant:
+          type: string
 
     AreaRectangle:
       type: object
@@ -888,6 +904,8 @@ components:
       properties:
         type:
           const: agentArea
+        stayUntil:
+          type: number
         directoryName:
           type: string
         id:
@@ -918,6 +936,20 @@ components:
         updatedAt:
           type: number
           description: When the last report arrived (epoch milliseconds).
+        credits:
+          $ref: '#/components/schemas/AudioCredits'
+
+    AudioCredits:
+      type: object
+      additionalProperties: false
+      required: [used, limit, renewsAt]
+      properties:
+        used:
+          type: number
+        limit:
+          type: number
+        renewsAt:
+          type: number
 
     HooksConsentRequest:
       description: |

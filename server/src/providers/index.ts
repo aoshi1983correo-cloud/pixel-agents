@@ -32,3 +32,5 @@ export function hookProviderById(id: unknown): HookProvider | undefined {
 
 export { antigravityProvider } from './hook/antigravity/antigravity.js';
 export { AntigravitySessionScanner } from './hook/antigravity/sessionScanner.js';
+export { elevenlabsProvider } from './hook/elevenlabs/elevenlabs.js';
+export { ElevenLabsSessionScanner } from './hook/elevenlabs/sessionScanner.js';

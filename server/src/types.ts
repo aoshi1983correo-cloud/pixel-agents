@@ -32,6 +32,7 @@ export interface AgentState {
   directoryName?: string;
   /** Runtime-only routing input, never sent to the office. */
   workingDirectory?: string;
+  officeStayUntil?: number;
   /** Timestamp of last JSONL data received (ms since epoch) */
   lastDataAt: number;
   /** Total JSONL lines processed for this agent */

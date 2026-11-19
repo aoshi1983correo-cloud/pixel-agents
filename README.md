@@ -258,3 +258,24 @@ Missing, malformed or expired windows say **sin datos**, never an assumed full a
 Bars above characters measure **context left**, independently of plan limits; their hover
 names context tokens and percent used. Context without a reported reading says **sin datos**.
 All bars turn amber at 75% used and red at 90% used.
+
+### ElevenLabs activity and credits
+
+The shared external audio tool can append JSONL events (`ts`, `id`, `estado`: `inicio|fin|error`, `accion`, `pide`, and `detalle`: filename only). Pixel Agents reads `PIXEL_AGENTS_ELEVEN_LOG`, falling back to `LOCALAPPDATA/soultrip/eleven/actividad.jsonl` at runtime. An absent file is silent. No hooks are installed and no audio generation is requested by the office. One ElevenLabs character represents concurrent operations; an unfinished operation older than 15 minutes becomes a visible error. Finished operations keep their seat for three minutes before returning to the rest area.
+
+Set `ELEVENLABS_API_KEY` in the server environment to show used credits, the plan limit and renewal date. Only Node calls the subscription endpoint, at most once every ten minutes, including failures. The key and API response bodies are never sent to the browser; credit numbers use the existing privileged-client gate. Missing credentials or failed queries show “ElevenLabs: sin conexión”. Restart the host after changing its environment.
+
+External office areas may reserve seats by tile without changing a layout:
+
+```json
+{
+  "name": "Video",
+  "rectangles": [{ "col": 1, "row": 1, "width": 8, "height": 5 }],
+  "workstations": [
+    { "col": 2, "row": 3, "occupant": "ElevenLabs" },
+    { "col": 6, "row": 3, "occupant": "Video Studio" }
+  ]
+}
+```
+
+Add a routing rule `{"provider":"elevenlabs","area":"Video"}`. These coordinates are examples; use existing reachable chair tiles in your own layout. Reservations match the character's directory label. An occupied or unreachable reserved seat sends the character to the configured rest area. The second seat remains reserved even before Video Studio exists.

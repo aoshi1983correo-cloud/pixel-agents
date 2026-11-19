@@ -53,6 +53,7 @@ import { EditTool, type OfficeLayout, TILE_SIZE } from './office/types.js';
 import { isBrowserRuntime, isE2E } from './runtime.js';
 import { installTestHooks } from './testHooks.js';
 import { transport } from './transport/index.js';
+import { ElevenCredits } from './usage/ElevenCredits.js';
 import { UsageBars } from './usage/UsageBars.js';
 import { useUsageBridge } from './usage/useUsageBridge.js';
 
@@ -593,6 +594,8 @@ function App() {
             mobile={isMobile}
             row={2}
           />
+
+          <ElevenCredits mobile={isMobile} />
 
           {/* Vignette overlay */}
           <div

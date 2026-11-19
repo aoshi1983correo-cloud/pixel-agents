@@ -76,6 +76,7 @@ export class AgentStateStore {
       type: 'agentArea',
       id: agent.id,
       directoryName: agent.directoryName,
+      ...(agent.officeStayUntil ? { stayUntil: agent.officeStayUntil } : {}),
       area: resolveOfficeArea(
         this.officeAreas!,
         agent.providerId ?? 'claude',

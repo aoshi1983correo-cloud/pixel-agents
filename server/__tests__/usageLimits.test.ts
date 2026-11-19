@@ -142,6 +142,7 @@ describe('recordUsageReport', () => {
   it('snapshots each bridged provider: its install state, then its usage', () => {
     recordUsageReport(claudeProvider, report(42, 18), 1000);
     expect(usageSnapshotMessages()).toEqual([
+      { type: 'usageLimits', providerId: 'elevenlabs' },
       {
         type: 'usageBridgeStatus',
         providerId: 'claude',

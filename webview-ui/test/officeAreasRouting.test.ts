@@ -126,4 +126,23 @@ describe('office area walking', () => {
     advance(os);
     expect(os.characters.get(1)!.seatId).toBe('rest');
   });
+  it('reserves video seats for their named occupants and holds a finished seat briefly', () => {
+    const os = office();
+    os.officeAreas[0].workstations = [{ col: 2, row: 2, occupant: 'ElevenLabs' }];
+    const ch = os.characters.get(1)!;
+    ch.directoryName = 'Other';
+    os.setAgentActive(1, true);
+    advance(os);
+    expect(ch.seatId).toBe('rest');
+    ch.directoryName = 'ElevenLabs';
+    advance(os);
+    expect(ch.seatId).toBe('web');
+    os.areaStayUntil.set(1, Date.now() + 60000);
+    os.setAgentActive(1, false);
+    advance(os);
+    expect(ch.seatId).toBe('web');
+    os.areaStayUntil.set(1, 0);
+    advance(os);
+    expect(ch.seatId).toBe('rest');
+  });
 });

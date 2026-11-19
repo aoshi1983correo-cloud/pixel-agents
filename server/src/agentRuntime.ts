@@ -41,6 +41,8 @@ import type { HookEvent } from './hookEventHandler.js';
 import { HookEventHandler } from './hookEventHandler.js';
 import { assignPaletteIfNeeded } from './paletteAssigner.js';
 import { PathSet, pathsMatch } from './pathKey.js';
+import { ElevenLabsCredits } from './providers/hook/elevenlabs/credits.js';
+import { ElevenLabsSessionScanner } from './providers/hook/elevenlabs/sessionScanner.js';
 import { AntigravitySessionScanner, CodexSessionScanner } from './providers/index.js';
 import { SessionRouter } from './sessionRouter.js';
 import { SubagentWatch } from './subagentWatch.js';
@@ -79,6 +81,8 @@ export class AgentRuntime {
   private externalScanTimer: ReturnType<typeof setInterval> | null = null;
   private staleCheckTimer: ReturnType<typeof setInterval> | null = null;
   private pausedSpawnTimer: ReturnType<typeof setInterval> | null = null;
+  private elevenScanner?: ElevenLabsSessionScanner;
+  private elevenCredits?: ElevenLabsCredits;
   private codexScanner?: CodexSessionScanner;
   private antigravityScanner?: AntigravitySessionScanner;
 
@@ -435,6 +439,12 @@ export class AgentRuntime {
 
   /** Passive CLI transcripts use their own discovery instead of Claude's workspace hashes. */
   startReadOnlyProviderScanning(workspaces: () => string[]): void {
+    if (!this.elevenScanner) {
+      this.elevenScanner = new ElevenLabsSessionScanner(this.store);
+      this.elevenScanner.start();
+      this.elevenCredits = new ElevenLabsCredits(this.store);
+      this.elevenCredits.start();
+    }
     if (!this.antigravityScanner) {
       this.antigravityScanner = new AntigravitySessionScanner(this.store, {
         workspaces,
@@ -619,6 +629,10 @@ export class AgentRuntime {
    * server were already closed by their own exits.
    */
   stop(): void {
+    this.elevenScanner?.stop();
+    this.elevenScanner = undefined;
+    this.elevenCredits?.stop();
+    this.elevenCredits = undefined;
     this.antigravityScanner?.stop();
     this.antigravityScanner = undefined;
     this.codexScanner?.stop();

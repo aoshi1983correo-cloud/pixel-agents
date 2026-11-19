@@ -22,7 +22,12 @@ import type { AgentState } from './types.js';
  *  signal never comes. */
 export function toPersistedAgent(agent: AgentState): PersistedAgent | null {
   // Passive providers rediscover their sessions outside Claude's restore parser.
-  if (agent.providerId === 'codex' || agent.providerId === 'antigravity') return null;
+  if (
+    agent.providerId === 'codex' ||
+    agent.providerId === 'antigravity' ||
+    agent.providerId === 'elevenlabs'
+  )
+    return null;
   if (agent.spawnToolUseId) return null;
   return {
     id: agent.id,

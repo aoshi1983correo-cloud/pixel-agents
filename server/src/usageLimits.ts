@@ -22,6 +22,7 @@ import {
   USAGE_UNCHANGED_REFRESH_MS,
 } from './constants.js';
 import { writeJsonAtomic } from './jsonFileWatcher.js';
+import { elevenCreditsSnapshot } from './providers/hook/elevenlabs/credits.js';
 import { antigravityProvider, codexProvider, hookProviders } from './providers/index.js';
 import { isRecord } from './serverConfig.js';
 
@@ -153,10 +154,13 @@ export function usageBridgeStatusMessage(
 /** What a privileged office is told about usage when it connects: for each
  *  provider, its last usage; bridges also include their install state. Both surfaces' handshakes send exactly this. */
 export function usageSnapshotMessages(): Array<UsageBridgeStatus | UsageLimits> {
-  return [...hookProviders, codexProvider, antigravityProvider].flatMap((provider) => [
-    ...(provider.usageBridge ? [usageBridgeStatusMessage(provider)] : []),
-    usageLimitsMessage(provider.id),
-  ]);
+  return [
+    elevenCreditsSnapshot(),
+    ...[...hookProviders, codexProvider, antigravityProvider].flatMap((provider) => [
+      ...(provider.usageBridge ? [usageBridgeStatusMessage(provider)] : []),
+      usageLimitsMessage(provider.id),
+    ]),
+  ];
 }
 
 /**

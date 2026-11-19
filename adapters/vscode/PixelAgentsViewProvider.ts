@@ -659,7 +659,12 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
           const toRemove: number[] = [];
           for (const [id, agent] of this.store) {
             // Passive providers filter by their metadata cwd, not Claude's project hashes.
-            if (agent.providerId === 'codex' || agent.providerId === 'antigravity') continue;
+            if (
+              agent.providerId === 'codex' ||
+              agent.providerId === 'antigravity' ||
+              agent.providerId === 'elevenlabs'
+            )
+              continue;
             if (agent.isExternal && !workspaceDirs.has(agent.projectDir)) {
               toRemove.push(id);
             }
